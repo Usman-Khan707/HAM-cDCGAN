@@ -389,81 +389,8 @@ convergence. §7.1 quantifies the most likely cause.
 
 ---
 
-## 7. Discussion
 
-### 7.1 Generator/discriminator capacity imbalance
-
-The original formulation of this project observed informally that "the
-discriminator was too simple to keep improving." The parameter counts of §4.3
-and §4.4 make that claim quantitative:
-
-| Network | Parameters | Share |
-| --- | ---: | ---: |
-| Generator $G_\theta$ | 31,639,360 | 91.9% |
-| Discriminator $D_\phi$ | 2,799,360 | 8.1% |
-| **Ratio $\lvert G \rvert / \lvert D \rvert$** | **11.30×** | |
-
-A GAN is only as good as the gradient its discriminator provides. When
-$\lvert G \rvert \gg \lvert D \rvert$, the discriminator saturates as a feature extractor before the
-generator has exhausted its own capacity, and the generator is left optimising
-against a critic that can no longer distinguish increasingly fine-grained
-differences. The observed loss plateau is exactly the signature of this regime.
-
-Two properties of the configuration compound it:
-
-1. **`ngf = 128` against `ndf = 64`.** The asymmetry is doubled at every stage
-   of the decoder relative to the encoder.
-2. **The 1256-channel fusion.** The `n_dnn = 1000` label embedding dominates the
-   128-dimensional latent code by roughly 8:1 in the fused vector, and inflates
-   the first transposed convolution to 20.58 M parameters — two thirds of the
-   generator, spent on a single 4×4 projection.
-
-The cheapest interventions are therefore to raise `ndf` to 128 (bringing the
-ratio to ≈2.9×) and to reduce `n_dnn` to the order of `nz`. Both are
-single-line edits in `static.py`.
-
-### 7.2 Class imbalance is not compensated
-
-`random_split` followed by a shuffled `DataLoader` samples images uniformly,
-which reproduces the 58:1 prevalence skew of §3.2 inside every batch. In
-expectation a batch of 64 contains ~43 `nv` images and **fewer than one** `df`
-or `vasc` image. The conditional branches for the rare classes therefore receive
-orders of magnitude less gradient signal than those for `nv`. Given that the
-motivating use case is augmentation of exactly those rare classes, this is the
-most substantively limiting choice in the current pipeline.
-
-A `WeightedRandomSampler` with weights $\propto 1/n_c$ is the standard remedy and
-integrates cleanly with the existing `DataLoader` construction.
-
-### 7.3 Absence of quantitative evaluation
-
-Validation is currently qualitative only (`hamgan/validation.py` produces
-Figures 2 and 3). Without FID [5] or a downstream classifier study, the two
-questions that actually matter — *is the sample distribution close to the real
-one?* and *does augmenting with these samples improve diagnostic accuracy?* —
-remain unanswered. No claim of augmentation benefit is made anywhere in this
-repository.
-
----
-
-## 8. Limitations and Known Issues
-
-| ID | Severity | Issue |
-| --- | --- | --- |
-| I-1 | **High** | **CLI is non-functional.** `hamgan/main.py` passes `action='use_cpu'` (and similar) to `argparse`, which expects `'store_true'`. Every switch raises `ValueError` at parse time. Invoke `main()` programmatically until fixed. |
-| I-2 | **High** | **`use_cpu=True` crashes on CUDA hosts.** `_checkpoint_noise` and `_checkpoint_labels` are allocated on `DEVICE` at import time, before `train_gan` honours `use_cpu`. The checkpoint forward pass then mixes CPU and CUDA tensors. |
-| I-3 | **High** | **128×128 conditional architecture is unimplemented.** `Generator128` / `Discriminator128` exist only in unconditional form; setting `IMAGE_SIZE = 128` raises `ModuleNotFoundError`. |
-| I-4 | **High** | Class imbalance is uncompensated in the sampler (§7.2). |
-| I-5 | Medium | `random_split` is image-level, so images of one `lesion_id` leak across splits (§3.3). Must become group-wise before downstream evaluation. |
-| I-6 | Medium | Checkpoint images are rescaled by `(x + 1) / 2`, a `Tanh`-convention leftover, although the conditional generator emits `Sigmoid` outputs in $[0,1]$. `normalize=True` masks this via min–max rescaling, but the transform is wrong. The loss-plot x-axis is likewise labelled `iterations` while holding per-epoch values. |
-| I-7 | Medium | Only `train_loader` is consumed; `val_loader` and `test_loader` are constructed and discarded. |
-| I-8 | Low | `.img/`, unlike `output/` and `models/`, is not created via `os.makedirs`; plotting fails if it is absent. |
-| I-9 | Low | `colorama` is imported by `hamgan/logger.py` but absent from the documented environment specification (corrected in §10.1). |
-| I-10 | Low | `df['age'].astype(int, errors='ignore')` is deprecated in pandas ≥ 2.0 and is a silent no-op on the 57 rows with missing age. The column is unused. |
-
----
-
-## 9. Roadmap
+## 7. Roadmap
 
 Ordered by expected impact per unit of effort:
 
@@ -487,9 +414,9 @@ Ordered by expected impact per unit of effort:
 
 ---
 
-## 10. Reproducing the Results
+## 8. Reproducing the Results
 
-### 10.1 Environment
+### 8.1 Environment
 
 Training was performed locally with GPU support via CUDA 11.8 and a compatible
 cuDNN. On Windows, cuDNN files must be copied into
@@ -513,7 +440,7 @@ Optional — register the environment as a Jupyter kernel:
 python -m ipykernel install --user --name=hamgan
 ```
 
-### 10.2 Expected data layout
+### 8.2 Expected data layout
 
 Download HAM10000 and arrange it as follows. The directory is
 gitignored and the dataset is not redistributed here.
@@ -525,7 +452,7 @@ data/
 └── HAM10000_images_part_2/     # 5,015 .jpg
 ```
 
-### 10.3 Running
+### 8.3 Running
 
 Until I-1 is resolved, invoke the entry point programmatically:
 
@@ -542,7 +469,7 @@ main(load_model=True)
 Outputs are written to `output/` (checkpoint image grids), `models/`
 (`generator.pth`, `discriminator.pth`) and `.img/` (figures).
 
-### 10.4 Repository structure
+### 8.4 Repository structure
 
 ```
 hamgan/
@@ -561,28 +488,6 @@ change resolution, capacity, or optimisation settings.
 
 ---
 
-## 11. Ethical Considerations
-
-- **Not a medical device.** Nothing in this repository is validated for clinical
-  use. Synthetic dermatoscopic images must not inform diagnosis or triage.
-- **Synthetic ≠ anonymous.** GANs trained on small corpora can memorise and
-  reproduce training examples. Before any synthetic data is released, a
-  nearest-neighbour memorisation audit against the training split is required.
-  No such audit has been performed here.
-- **Inherited bias.** HAM10000 is drawn predominantly from European and
-  Australian populations and consequently under-represents darker skin tones. A
-  generator trained on it inherits that skew, and augmenting with its output
-  risks *amplifying* rather than correcting representational bias — the opposite
-  of the stated motivation. Any downstream evaluation should stratify by
-  Fitzpatrick skin type where that metadata is available.
-- **Upstream licence.** HAM10000 is CC BY-NC 4.0. Models and images derived from
-  it inherit the non-commercial restriction regardless of this repository's own
-  licence.
-- **Label provenance.** Roughly half of HAM10000 labels are histopathologically
-  confirmed; the remainder rest on follow-up, consensus, or confocal microscopy.
-  The conditioning signal is therefore not uniformly reliable across samples.
-
----
 
 ## Citation
 
