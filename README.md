@@ -2,13 +2,6 @@
 
 ### Class-Conditional Deep Convolutional GANs for Dermatoscopic Image Synthesis
 
-<p align="left">
-  <img alt="Python" src="https://img.shields.io/badge/python-3.9-blue.svg">
-  <img alt="PyTorch" src="https://img.shields.io/badge/PyTorch-%E2%89%A5%201.13-ee4c2c.svg">
-  <img alt="License" src="https://img.shields.io/badge/license-AGPL--3.0-green.svg">
-  <img alt="Status" src="https://img.shields.io/badge/status-research%20prototype-orange.svg">
-</p>
-
 ---
 
 ## Abstract
