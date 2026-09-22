@@ -482,33 +482,6 @@ change resolution, capacity, or optimisation settings.
 ---
 
 
-## Citation
-
-If you use this code, please cite both the repository and the underlying
-dataset.
-
-```bibtex
-@software{ham_cdcgan,
-  title  = {{HAM-cDCGAN}: Class-Conditional Deep Convolutional {GANs}
-            for Dermatoscopic Image Synthesis},
-  year   = {2023},
-  note   = {Research prototype},
-  url    = {https://github.com/<user>/ham-cdcgan}
-}
-
-@article{Tschandl2018_HAM10000,
-  author  = {Tschandl, Philipp and Rosendahl, Cliff and Kittler, Harald},
-  title   = {The {HAM10000} dataset, a large collection of multi-source
-             dermatoscopic images of common pigmented skin lesions},
-  journal = {Scientific Data},
-  volume  = {5},
-  pages   = {180161},
-  year    = {2018},
-  doi     = {10.1038/sdata.2018.161}
-}
-```
-
----
 
 ## References
 
@@ -533,17 +506,3 @@ dataset.
 - General repositories: [Zenodo](https://zenodo.org/) · [Hugging Face Datasets](https://huggingface.co/docs/datasets/)
 
 ---
-
-## Licence and Acknowledgements
-
-This repository is released under the **GNU Affero General Public License v3.0**
-(see `LICENSE`). The HAM10000 dataset is **not** redistributed here and remains
-under **CC BY-NC 4.0**; obligations under that licence pass to any model or
-image derived from it.
-
-The architectures adapt the PyTorch
-[DCGAN tutorial](https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html)
-and the conditioning scheme of
-[ashukid/Conditional-GAN-pytorch](https://github.com/ashukid/Conditional-GAN-pytorch).
-We thank Tschandl, Rosendahl and Kittler for releasing HAM10000, and the ISIC
-Archive for hosting it.
